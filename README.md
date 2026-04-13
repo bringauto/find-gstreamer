@@ -28,7 +28,7 @@ differences are in `diff/FindGStreamer.diff`.
 Clone the repository to a stable location:
 
 ```bash
-git clone https://github.com/bacpack-system/ba-find-gstreamer ~/ba-find-gstreamer
+git clone https://github.com/bringauto/find-gstreamer.git ~/ba-find-gstreamer
 ```
 
 Add `GStreamer_DIR` to your shell environment (e.g. `~/.bashrc`):
@@ -65,7 +65,7 @@ target_link_libraries(my_target PRIVATE
 )
 ```
 
-### Fixing pkg-config prefixes in a custom SDK
+### Fixing pkg-config prefixes in a custom SDK (for gstreamer built by Packager)
 
 If the GStreamer SDK was built with a fixed install prefix (e.g. `/INSTALL`) that
 differs from where it is actually located at build time, use `BA_FIX_PKGCONFIG` to
@@ -77,7 +77,9 @@ find_package(GStreamer REQUIRED)
 ```
 
 This replaces every occurrence of `/INSTALL` in `.pc` files under `GSTREAMER_DIR`
-with the `GSTREAMER_DIR` path, so `pkg-config` returns correct include and library paths.
+set by user, so `pkg-config` returns correct include and library paths.
+
+This is needed when building using gstreamer built by [Packager].
 
 ### Custom SDK installation
 
@@ -146,3 +148,5 @@ install(IMPORTED_RUNTIME_ARTIFACTS ${GStreamer_BUNDLED_TARGETS}
 )
 BA_INSTALL_AND_PATCHELF_GSTREAMER_PLUGINS(DESTINATION lib/gstreamer-1.0)
 ```
+
+[Packager]: https://github.com/bacpack-system/packager

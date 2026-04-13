@@ -467,7 +467,9 @@ foreach(_gst_PLUGIN IN LISTS GSTREAMER_PLUGINS)
         _gst_apply_frameworks(PC_GStreamer_${_gst_PLUGIN}_STATIC_LDFLAGS_OTHER GStreamer::${_gst_PLUGIN})
     else()
         _gst_dep_libs(_gst_plugin_deps PC_GStreamer_${_gst_PLUGIN})
-        list(REMOVE_AT _gst_plugin_deps 0)
+        if(_gst_plugin_deps)
+            list(REMOVE_AT _gst_plugin_deps 0)
+        endif()
         _gst_create_imported_dep_targets(_gst_plugin_dep_targets ${_gst_plugin_deps})
         set_target_properties(GStreamer::${_gst_PLUGIN} PROPERTIES
             INTERFACE_LINK_OPTIONS "${PC_GStreamer_${_gst_PLUGIN}_LDFLAGS_OTHER}"
@@ -528,7 +530,9 @@ foreach(_gst_PLUGIN IN LISTS GSTREAMER_APIS)
         _gst_apply_frameworks(PC_GStreamer_${_gst_PLUGIN}_STATIC_LDFLAGS_OTHER GStreamer::${_gst_PLUGIN})
     else()
         _gst_dep_libs(_gst_plugin_deps PC_GStreamer_${_gst_PLUGIN})
-        list(REMOVE_AT _gst_plugin_deps 0)
+        if(_gst_plugin_deps)
+            list(REMOVE_AT _gst_plugin_deps 0)
+        endif()
         _gst_create_imported_dep_targets(_gst_plugin_dep_targets ${_gst_plugin_deps})
         set_target_properties(GStreamer::${_gst_PLUGIN} PROPERTIES
             INTERFACE_LINK_OPTIONS "${PC_GStreamer_${_gst_PLUGIN}_LDFLAGS_OTHER}"

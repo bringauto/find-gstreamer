@@ -116,22 +116,24 @@
 >     add_library(GStreamer::${_gst_PLUGIN} UNKNOWN IMPORTED)
 370a458
 >         IMPORTED_LOCATION "${_gst_plugin_library}"
-380a469,471
+380a469,473
 >         _gst_dep_libs(_gst_plugin_deps PC_GStreamer_${_gst_PLUGIN})
->         list(REMOVE_AT _gst_plugin_deps 0)
+>         if(_gst_plugin_deps)
+>             list(REMOVE_AT _gst_plugin_deps 0)
+>         endif()
 >         _gst_create_imported_dep_targets(_gst_plugin_dep_targets ${_gst_plugin_deps})
-383c474
+383c476
 <             INTERFACE_LINK_LIBRARIES "${PC_GStreamer_${_gst_PLUGIN}_LINK_LIBRARIES}"
 ---
 >             INTERFACE_LINK_LIBRARIES "${_gst_plugin_dep_targets}"
-385c476,477
+385c478,479
 <         # We're done
 ---
 >         message(VERBOSE "GStreamer::${_gst_PLUGIN} [${_gst_plugin_library}]")
 >         message(VERBOSE "  deps -> ${_gst_plugin_dep_targets}")
-389d480
+389d482
 <     # Handle all libraries, even those specified with -l:libfoo.a (srt)
-419c510,515
+419c512,517
 <     add_library(GStreamer::${_gst_PLUGIN} INTERFACE IMPORTED)
 ---
 >     _gst_find_plugin_library(${_gst_PLUGIN} _gst_plugin_library)
@@ -140,24 +142,26 @@
 >     endif()
 > 
 >     add_library(GStreamer::${_gst_PLUGIN} UNKNOWN IMPORTED)
-421a518
+421a520
 >         IMPORTED_LOCATION "${_gst_plugin_library}"
-432a530,532
+432a532,536
 >         _gst_dep_libs(_gst_plugin_deps PC_GStreamer_${_gst_PLUGIN})
->         list(REMOVE_AT _gst_plugin_deps 0)
+>         if(_gst_plugin_deps)
+>             list(REMOVE_AT _gst_plugin_deps 0)
+>         endif()
 >         _gst_create_imported_dep_targets(_gst_plugin_dep_targets ${_gst_plugin_deps})
-435c535
+435c539
 <             INTERFACE_LINK_LIBRARIES "${PC_GStreamer_${_gst_PLUGIN}_LINK_LIBRARIES}"
 ---
 >             INTERFACE_LINK_LIBRARIES "${_gst_plugin_dep_targets}"
-437c537,538
+437c541,542
 <         # We're done
 ---
 >         message(VERBOSE "GStreamer::${_gst_PLUGIN} [${_gst_plugin_library}]")
 >         message(VERBOSE "  deps -> ${_gst_plugin_dep_targets}")
-441d541
+441d545
 <     # Handle all libraries, even those specified with -l:libfoo.a (srt)
-458a559,651
+458a563,655
 > 
 > # Create MODULE IMPORTED targets for every runtime plugin .so in lib/gstreamer-1.0/.
 > # GStreamer loads these via dlopen() at gst_init() time — they are not linked.
