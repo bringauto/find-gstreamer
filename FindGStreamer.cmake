@@ -250,6 +250,10 @@ macro(_gst_apply_frameworks PC_STATIC_LDFLAGS_OTHER GST_TARGET)
 endmacro()
 
 function(_gst_find_plugin_library _plugin _output_var)
+    if(NOT PC_GStreamer_${_plugin}_LIBRARIES)
+        set(${_output_var} "" PARENT_SCOPE)
+        return()
+    endif()
     list(GET PC_GStreamer_${_plugin}_LIBRARIES 0 _lib_name)
     find_library(_gst_${_plugin}_LIBRARY
         NAMES "${_lib_name}"
@@ -449,6 +453,7 @@ foreach(_gst_PLUGIN IN LISTS GSTREAMER_PLUGINS)
 
     _gst_find_plugin_library(${_gst_PLUGIN} _gst_plugin_library)
     if (NOT _gst_plugin_library)
+        set(GStreamer_${_gst_PLUGIN}_FOUND FALSE)
         continue()
     endif()
 
@@ -511,6 +516,7 @@ foreach(_gst_PLUGIN IN LISTS GSTREAMER_APIS)
 
     _gst_find_plugin_library(${_gst_PLUGIN} _gst_plugin_library)
     if (NOT _gst_plugin_library)
+        set(GStreamer_${_gst_PLUGIN}_FOUND FALSE)
         continue()
     endif()
 
