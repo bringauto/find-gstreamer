@@ -1,20 +1,42 @@
-FUNCTION(BA_FIX_PKGCONFIG CHANGE_DIR)
-    FILE(GLOB_RECURSE PC_FILES "${CHANGE_DIR}/*.pc")
+# BA_FIX_PKGCONFIG(DIR <dir>)
+#
+# Rewrites all .pc files under <dir> in-place, replacing the hard-coded
+# ``/INSTALL`` prefix with the actual <dir> path. Use this before
+# find_package(GStreamer) when the SDK was built with a fixed install prefix
+# that differs from where it is located at build time.
+FUNCTION(BA_FIX_PKGCONFIG)
+    CMAKE_PARSE_ARGUMENTS(_bfp "" "DIR" "" ${ARGN})
+    IF(NOT _bfp_DIR)
+        MESSAGE(FATAL_ERROR "BA_FIX_PKGCONFIG: DIR is required")
+    ENDIF()
+
+    FILE(GLOB_RECURSE PC_FILES "${_bfp_DIR}/*.pc")
 
     FOREACH(pc_file IN LISTS PC_FILES)
         FILE(READ "${pc_file}" pc_content)
-        STRING(REPLACE "/INSTALL" "${CHANGE_DIR}" pc_content_fixed "${pc_content}")
+        STRING(REPLACE "/INSTALL" "${_bfp_DIR}" pc_content_fixed "${pc_content}")
         FILE(WRITE "${pc_file}" "${pc_content_fixed}")
     ENDFOREACH()
 ENDFUNCTION()
 
+# BA_INSTALL_AND_PATCHELF_GSTREAMER_PLUGINS(TARGETS <targets...> DESTINATION <dir>)
+#
+# Installs all given <targets> to <dir> and runs ``patchelf --set-rpath $ORIGIN/..``
+# on each installed plugin .so so that plugins can locate their shared library
+# dependencies in the adjacent lib/ directory at runtime. Requires patchelf to be
+# present on the install host.
 FUNCTION(BA_INSTALL_AND_PATCHELF_GSTREAMER_PLUGINS)
-    CMAKE_PARSE_ARGUMENTS(_gip "" "DESTINATION" "" ${ARGN})
+    CMAKE_PARSE_ARGUMENTS(_gip "" "DESTINATION" "TARGETS" ${ARGN})
     IF(NOT _gip_DESTINATION)
         MESSAGE(FATAL_ERROR "BA_INSTALL_AND_PATCHELF_GSTREAMER_PLUGINS: DESTINATION is required")
     ENDIF()
+    IF(NOT _gip_TARGETS)
+        MESSAGE(FATAL_ERROR "BA_INSTALL_AND_PATCHELF_GSTREAMER_PLUGINS: TARGETS is required")
+    ENDIF()
 
-    INSTALL(IMPORTED_RUNTIME_ARTIFACTS ${GStreamer_PLUGIN_TARGETS}
+    FIND_PROGRAM(_gip_PATCHELF patchelf REQUIRED)
+
+    INSTALL(IMPORTED_RUNTIME_ARTIFACTS ${_gip_TARGETS}
         LIBRARY DESTINATION "${_gip_DESTINATION}"
     )
 
@@ -24,7 +46,7 @@ FUNCTION(BA_INSTALL_AND_PATCHELF_GSTREAMER_PLUGINS)
         FOREACH(_p IN LISTS _plugins)
             GET_FILENAME_COMPONENT(_pname \"\${_p}\" NAME)
             MESSAGE(STATUS \"patchelf update R/RUNPATH: ${_gip_dest}/\${_pname}\")
-            EXECUTE_PROCESS(COMMAND patchelf --set-rpath \"\$ORIGIN/..\" \"\${_p}\")
+            EXECUTE_PROCESS(COMMAND \"${_gip_PATCHELF}\" --set-rpath \"\$ORIGIN/..\" \"\${_p}\")
         ENDFOREACH()
     ")
 ENDFUNCTION()

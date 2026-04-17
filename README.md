@@ -72,7 +72,7 @@ differs from where it is actually located at build time, use `BA_FIX_PKGCONFIG` 
 rewrite all `.pc` files in place before calling `find_package`:
 
 ```cmake
-BA_FIX_PKGCONFIG(${GSTREAMER_DIR})
+BA_FIX_PKGCONFIG(DIR ${GSTREAMER_DIR})
 find_package(GStreamer REQUIRED)
 ```
 
@@ -123,7 +123,7 @@ Use `BA_INSTALL_AND_PATCHELF_GSTREAMER_PLUGINS` (provided by `Tools.cmake`) to
 install all plugins to the given destination and fix their RUNPATH in one call:
 
 ```cmake
-BA_INSTALL_AND_PATCHELF_GSTREAMER_PLUGINS(DESTINATION lib/gstreamer-1.0)
+BA_INSTALL_AND_PATCHELF_GSTREAMER_PLUGINS(TARGETS ${GStreamer_PLUGIN_TARGETS} DESTINATION lib/gstreamer-1.0)
 ```
 
 This installs every target from `GStreamer_PLUGIN_TARGETS` to `lib/gstreamer-1.0/`
@@ -146,7 +146,7 @@ find_package(GStreamer REQUIRED)
 install(IMPORTED_RUNTIME_ARTIFACTS ${GStreamer_BUNDLED_TARGETS}
     LIBRARY DESTINATION lib
 )
-BA_INSTALL_AND_PATCHELF_GSTREAMER_PLUGINS(DESTINATION lib/gstreamer-1.0)
+BA_INSTALL_AND_PATCHELF_GSTREAMER_PLUGINS(TARGETS ${GStreamer_PLUGIN_TARGETS} DESTINATION lib/gstreamer-1.0)
 ```
 
 [Packager]: https://github.com/bacpack-system/packager
