@@ -12,7 +12,7 @@ Configuration
 
 This module can be configured with the following variables:
 
-``GStreamer_STATIC``
+``GStreamer_USE_STATIC_LIBS``
   Link against GStreamer statically (see below).
 
 Imported Targets
@@ -55,7 +55,7 @@ Setting the following variables is required, depending on the operating system:
 ``GStreamer_ROOT_DIR``
   Installation prefix of the GStreamer SDK.
 
-``GStreamer_USE_STATIC_LIBS`
+``GStreamer_USE_STATIC_LIBS``
   Set to ON to force the use of the static libraries. Default is OFF.
 
 ``GStreamer_BUNDLE_DEPS``
@@ -107,6 +107,10 @@ function(_gst_dep_libs _out _prefix)
     set(${_out} "${${_prefix}_LINK_LIBRARIES}" PARENT_SCOPE)
     message(VERBOSE "  [deps] ${_prefix}: ${${_prefix}_LINK_LIBRARIES}")
 endfunction()
+
+# Save pkg-config environment so it can be restored after find_package returns
+set(_gst_orig_PKG_CONFIG_PATH "$ENV{PKG_CONFIG_PATH}")
+set(_gst_orig_PKG_CONFIG_DONT_DEFINE_PREFIX "$ENV{PKG_CONFIG_DONT_DEFINE_PREFIX}")
 
 # Set the environment for pkg-config
 if (CMAKE_HOST_SYSTEM_NAME STREQUAL "Windows")
@@ -658,4 +662,12 @@ get_property(GStreamer_BUNDLED_TARGETS GLOBAL PROPERTY _GStreamer_dep_targets)
 # Restore PKG_CONFIG_EXECUTABLE to the cache value (removes the --static shadow)
 if (GStreamer_BUNDLE_DEPS)
     unset(PKG_CONFIG_EXECUTABLE)
+endif()
+
+# Restore pkg-config environment to avoid leaking into subsequent operations
+set(ENV{PKG_CONFIG_PATH} "${_gst_orig_PKG_CONFIG_PATH}")
+if (_gst_orig_PKG_CONFIG_DONT_DEFINE_PREFIX)
+    set(ENV{PKG_CONFIG_DONT_DEFINE_PREFIX} "${_gst_orig_PKG_CONFIG_DONT_DEFINE_PREFIX}")
+else()
+    unset(ENV{PKG_CONFIG_DONT_DEFINE_PREFIX})
 endif()
