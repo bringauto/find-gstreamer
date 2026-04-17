@@ -68,11 +68,11 @@ target_link_libraries(my_target PRIVATE
 ### Fixing pkg-config prefixes in a custom SDK (for gstreamer built by Packager)
 
 If the GStreamer SDK was built with a fixed install prefix (e.g. `/INSTALL`) that
-differs from where it is actually located at build time, use `BA_FIX_PKGCONFIG` to
+differs from where it is actually located at build time, use `FindGStreamer_TOOL_FIX_PKGCONFIG` to
 rewrite all `.pc` files in place before calling `find_package`:
 
 ```cmake
-BA_FIX_PKGCONFIG(DIR ${GSTREAMER_DIR})
+FindGStreamer_TOOL_FIX_PKGCONFIG(DIR ${GSTREAMER_DIR})
 find_package(GStreamer REQUIRED)
 ```
 
@@ -119,11 +119,11 @@ GStreamer loads plugins from `lib/gstreamer-1.0/` via `dlopen()` at `gst_init()`
 time — they are never linked. `GStreamer_PLUGIN_TARGETS` contains MODULE IMPORTED
 targets for every `libgst*.so` found in `${GStreamer_ROOT_DIR}/lib/gstreamer-1.0/`.
 
-Use `BA_INSTALL_AND_PATCHELF_GSTREAMER_PLUGINS` (provided by `Tools.cmake`) to
+Use `FindGStreamer_TOOL_INSTALL_AND_PATCHELF_PLUGINS` (provided by `FindGStreamer_TOOL.cmake`) to
 install all plugins to the given destination and fix their RUNPATH in one call:
 
 ```cmake
-BA_INSTALL_AND_PATCHELF_GSTREAMER_PLUGINS(TARGETS ${GStreamer_PLUGIN_TARGETS} DESTINATION lib/gstreamer-1.0)
+FindGStreamer_TOOL_INSTALL_AND_PATCHELF_PLUGINS(TARGETS ${GStreamer_PLUGIN_TARGETS} DESTINATION lib/gstreamer-1.0)
 ```
 
 This installs every target from `GStreamer_PLUGIN_TARGETS` to `lib/gstreamer-1.0/`
@@ -146,7 +146,7 @@ find_package(GStreamer REQUIRED)
 install(IMPORTED_RUNTIME_ARTIFACTS ${GStreamer_BUNDLED_TARGETS}
     LIBRARY DESTINATION lib
 )
-BA_INSTALL_AND_PATCHELF_GSTREAMER_PLUGINS(TARGETS ${GStreamer_PLUGIN_TARGETS} DESTINATION lib/gstreamer-1.0)
+FindGStreamer_TOOL_INSTALL_AND_PATCHELF_PLUGINS(TARGETS ${GStreamer_PLUGIN_TARGETS} DESTINATION lib/gstreamer-1.0)
 ```
 
 [Packager]: https://github.com/bacpack-system/packager

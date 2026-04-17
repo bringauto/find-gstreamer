@@ -1,13 +1,13 @@
-# BA_FIX_PKGCONFIG(DIR <dir>)
+# FindGStreamer_TOOL_FIX_PKGCONFIG(DIR <dir>)
 #
 # Rewrites all .pc files under <dir> in-place, replacing the hard-coded
 # ``/INSTALL`` prefix with the actual <dir> path. Use this before
 # find_package(GStreamer) when the SDK was built with a fixed install prefix
 # that differs from where it is located at build time.
-FUNCTION(BA_FIX_PKGCONFIG)
+FUNCTION(FindGStreamer_TOOL_FIX_PKGCONFIG)
     CMAKE_PARSE_ARGUMENTS(_bfp "" "DIR" "" ${ARGN})
     IF(NOT _bfp_DIR)
-        MESSAGE(FATAL_ERROR "BA_FIX_PKGCONFIG: DIR is required")
+        MESSAGE(FATAL_ERROR "FindGStreamer_TOOL_FIX_PKGCONFIG: DIR is required")
     ENDIF()
 
     FILE(GLOB_RECURSE PC_FILES "${_bfp_DIR}/*.pc")
@@ -19,19 +19,19 @@ FUNCTION(BA_FIX_PKGCONFIG)
     ENDFOREACH()
 ENDFUNCTION()
 
-# BA_INSTALL_AND_PATCHELF_GSTREAMER_PLUGINS(TARGETS <targets...> DESTINATION <dir>)
+# FindGStreamer_TOOL_INSTALL_AND_PATCHELF_PLUGINS(TARGETS <targets...> DESTINATION <dir>)
 #
-# Installs all given <targets> to <dir> and runs ``patchelf --set-rpath $ORIGIN/..``
-# on each installed plugin .so so that plugins can locate their shared library
-# dependencies in the adjacent lib/ directory at runtime. Requires patchelf to be
-# present on the install host.
-FUNCTION(BA_INSTALL_AND_PATCHELF_GSTREAMER_PLUGINS)
+# Installs all given <targets> to <dir> and runs
+# ``patchelf --set-rpath $ORIGIN/..`` on each installed plugin .so so that
+# plugins can locate their shared library dependencies in the adjacent lib/
+# directory at runtime. Requires patchelf to be present on the install host.
+FUNCTION(FindGStreamer_TOOL_INSTALL_AND_PATCHELF_PLUGINS)
     CMAKE_PARSE_ARGUMENTS(_gip "" "DESTINATION" "TARGETS" ${ARGN})
     IF(NOT _gip_DESTINATION)
-        MESSAGE(FATAL_ERROR "BA_INSTALL_AND_PATCHELF_GSTREAMER_PLUGINS: DESTINATION is required")
+        MESSAGE(FATAL_ERROR "FindGStreamer_TOOL_INSTALL_AND_PATCHELF_PLUGINS: DESTINATION is required")
     ENDIF()
     IF(NOT _gip_TARGETS)
-        MESSAGE(FATAL_ERROR "BA_INSTALL_AND_PATCHELF_GSTREAMER_PLUGINS: TARGETS is required")
+        MESSAGE(FATAL_ERROR "FindGStreamer_TOOL_INSTALL_AND_PATCHELF_PLUGINS: TARGETS is required")
     ENDIF()
 
     FIND_PROGRAM(_gip_PATCHELF patchelf REQUIRED)

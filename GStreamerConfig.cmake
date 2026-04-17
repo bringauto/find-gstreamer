@@ -6,4 +6,4 @@
 #  find_package(GStreamer REQUIRED)
 
 include("${CMAKE_CURRENT_LIST_DIR}/FindGStreamer.cmake")
-include("${CMAKE_CURRENT_LIST_DIR}/Tools.cmake")
+include("${CMAKE_CURRENT_LIST_DIR}/FindGStreamer_TOOL.cmake")
