@@ -1,0 +1,283 @@
+15c15
+< ``GStreamer_STATIC``
+---
+> ``GStreamer_USE_STATIC_LIBS``
+58c58
+< ``GStreamer_USE_STATIC_LIBS`
+---
+> ``GStreamer_USE_STATIC_LIBS``
+60a61,66
+> ``GStreamer_BUNDLE_DEPS``
+>   Set to ON to include ``Requires.private`` dependencies in the IMPORTED target
+>   graph. Use this when bundling the GStreamer SDK alongside your application so
+>   that ``install(IMPORTED_RUNTIME_ARTIFACTS)`` captures all runtime libraries.
+>   Default is OFF.
+> 
+87c93,100
+< set(GStreamer_USE_STATIC_LIBS OFF)
+---
+>     set(GStreamer_USE_STATIC_LIBS OFF)
+> endif()
+> 
+> # When ON, pkg-config is queried with --static so that Requires.private deps
+> # are included in the IMPORTED target graph. Use this when bundling the
+> # GStreamer SDK alongside your application.
+> if (NOT DEFINED GStreamer_BUNDLE_DEPS)
+>     set(GStreamer_BUNDLE_DEPS OFF)
+89a103,114
+> # Returns _LINK_LIBRARIES for the given prefix, with a VERBOSE log line.
+> # When GStreamer_BUNDLE_DEPS=ON, PKG_CONFIG_EXECUTABLE is modified below to
+> # include --static so _LINK_LIBRARIES already contains Requires.private deps.
+> function(_gst_dep_libs _out _prefix)
+>     set(${_out} "${${_prefix}_LINK_LIBRARIES}" PARENT_SCOPE)
+>     message(VERBOSE "  [deps] ${_prefix}: ${${_prefix}_LINK_LIBRARIES}")
+> endfunction()
+> 
+> # Save pkg-config environment so it can be restored after find_package returns
+> set(_gst_orig_PKG_CONFIG_PATH "$ENV{PKG_CONFIG_PATH}")
+> set(_gst_orig_PKG_CONFIG_DONT_DEFINE_PREFIX "$ENV{PKG_CONFIG_DONT_DEFINE_PREFIX}")
+> 
+230a256,313
+> function(_gst_find_plugin_library _plugin _output_var)
+>     if(NOT PC_GStreamer_${_plugin}_LIBRARIES)
+>         set(${_output_var} "" PARENT_SCOPE)
+>         return()
+>     endif()
+>     list(GET PC_GStreamer_${_plugin}_LIBRARIES 0 _lib_name)
+>     find_library(_gst_${_plugin}_LIBRARY
+>         NAMES "${_lib_name}"
+>         PATHS ${PC_GStreamer_${_plugin}_LIBRARY_DIRS}
+>         NO_DEFAULT_PATH
+>         NO_CMAKE_FIND_ROOT_PATH
+>     )
+>     set(${_output_var} "${_gst_${_plugin}_LIBRARY}" PARENT_SCOPE)
+> endfunction()
+> 
+> function(_gst_create_imported_dep_targets output_var)
+>     set(_lib_paths ${ARGN})
+>     set(_targets)
+>     foreach(_lib IN LISTS _lib_paths)
+>         if(TARGET "${_lib}")
+>             list(APPEND _targets "${_lib}")
+>             continue()
+>         endif()
+>         if (_lib MATCHES "\\.a$")
+>             message(VERBOSE "  GStreamer dep [skipped .a]:      ${_lib}")
+>             continue()
+>         endif()
+>         # Skip known system libraries (libm, libc, libdl, etc.) — they are
+>         # already present on the target system and must not be bundled.
+>         get_filename_component(_lib_basename "${_lib}" NAME)
+>         string(REGEX REPLACE "^lib" ""    _lib_stem "${_lib_basename}")
+>         string(REGEX REPLACE "\\.so.*$" "" _lib_stem "${_lib_stem}")
+>         if (_lib_stem IN_LIST _gst_IGNORED_SYSTEM_LIBRARIES)
+>             message(VERBOSE "  GStreamer dep [skipped system]:  ${_lib}")
+>             continue()
+>         endif()
+>         if(NOT EXISTS "${_lib}")
+>             list(APPEND _targets "${_lib}")
+>             message(VERBOSE "  GStreamer dep [flag/not found]:  ${_lib}")
+>             continue()
+>         endif()
+>         get_filename_component(_lib_name "${_lib}" NAME)
+>         string(MAKE_C_IDENTIFIER "${_lib_name}" _lib_id)
+>         set(_target_name "GStreamer::_dep_${_lib_id}")
+>         if(NOT TARGET "${_target_name}")
+>             add_library("${_target_name}" UNKNOWN IMPORTED)
+>             set_target_properties("${_target_name}" PROPERTIES
+>                 IMPORTED_LOCATION "${_lib}"
+>             )
+>             # Accumulate into the global dep-target list.
+>             set_property(GLOBAL APPEND PROPERTY _GStreamer_dep_targets "${_target_name}")
+>         endif()
+>         message(VERBOSE "  GStreamer dep [imported]:        ${_target_name} -> ${_lib}")
+>         list(APPEND _targets "${_target_name}")
+>     endforeach()
+>     set(${output_var} "${_targets}" PARENT_SCOPE)
+> endfunction()
+> 
+236a320,327
+> # When bundling, append --static to PKG_CONFIG_EXECUTABLE so every
+> # pkg_check_modules call below includes Requires.private in _LINK_LIBRARIES.
+> # list(APPEND) shadows the cache variable; unset() at the end of this file
+> # restores it so the rest of the project is unaffected.
+> if (GStreamer_BUNDLE_DEPS)
+>     list(APPEND PKG_CONFIG_EXECUTABLE "--static")
+> endif()
+> 
+281,285d371
+<     # This is not UNKNOWN but INTERFACE, as we only intend to
+<     # make a target suitable for downstream consumption.
+<     # FindPkgConfig already takes care of things, however it is totally unable
+<     # to discern between shared and static libraries when populating
+<     # xxx_STATIC_LINK_LIBRARIES, so we need to populate them manually.
+309a396,397
+>         _gst_dep_libs(_gst_dep_lib_list PC_GStreamer)
+>         _gst_create_imported_dep_targets(_gst_dep_targets ${_gst_dep_lib_list})
+311c399
+<             INTERFACE_LINK_LIBRARIES "${PC_GStreamer_LINK_LIBRARIES}"
+---
+>             INTERFACE_LINK_LIBRARIES "${_gst_dep_targets}"
+312a401,402
+>         message(VERBOSE "GStreamer::GStreamer [${GStreamer_LIBRARY}]")
+>         message(VERBOSE "  GStreamer::deps -> ${_gst_dep_targets}")
+368c458,464
+<     add_library(GStreamer::${_gst_PLUGIN} INTERFACE IMPORTED)
+---
+>     _gst_find_plugin_library(${_gst_PLUGIN} _gst_plugin_library)
+>     if (NOT _gst_plugin_library)
+>         set(GStreamer_${_gst_PLUGIN}_FOUND FALSE)
+>         continue()
+>     endif()
+> 
+>     add_library(GStreamer::${_gst_PLUGIN} UNKNOWN IMPORTED)
+370a467
+>         IMPORTED_LOCATION "${_gst_plugin_library}"
+380a478,482
+>         _gst_dep_libs(_gst_plugin_deps PC_GStreamer_${_gst_PLUGIN})
+>         if(_gst_plugin_deps)
+>             list(REMOVE_AT _gst_plugin_deps 0)
+>         endif()
+>         _gst_create_imported_dep_targets(_gst_plugin_dep_targets ${_gst_plugin_deps})
+383c485
+<             INTERFACE_LINK_LIBRARIES "${PC_GStreamer_${_gst_PLUGIN}_LINK_LIBRARIES}"
+---
+>             INTERFACE_LINK_LIBRARIES "${_gst_plugin_dep_targets}"
+385c487,488
+<         # We're done
+---
+>         message(VERBOSE "GStreamer::${_gst_PLUGIN} [${_gst_plugin_library}]")
+>         message(VERBOSE "  deps -> ${_gst_plugin_dep_targets}")
+389d491
+<     # Handle all libraries, even those specified with -l:libfoo.a (srt)
+419c521,527
+<     add_library(GStreamer::${_gst_PLUGIN} INTERFACE IMPORTED)
+---
+>     _gst_find_plugin_library(${_gst_PLUGIN} _gst_plugin_library)
+>     if (NOT _gst_plugin_library)
+>         set(GStreamer_${_gst_PLUGIN}_FOUND FALSE)
+>         continue()
+>     endif()
+> 
+>     add_library(GStreamer::${_gst_PLUGIN} UNKNOWN IMPORTED)
+421a530
+>         IMPORTED_LOCATION "${_gst_plugin_library}"
+432a542,546
+>         _gst_dep_libs(_gst_plugin_deps PC_GStreamer_${_gst_PLUGIN})
+>         if(_gst_plugin_deps)
+>             list(REMOVE_AT _gst_plugin_deps 0)
+>         endif()
+>         _gst_create_imported_dep_targets(_gst_plugin_dep_targets ${_gst_plugin_deps})
+435c549
+<             INTERFACE_LINK_LIBRARIES "${PC_GStreamer_${_gst_PLUGIN}_LINK_LIBRARIES}"
+---
+>             INTERFACE_LINK_LIBRARIES "${_gst_plugin_dep_targets}"
+437c551,552
+<         # We're done
+---
+>         message(VERBOSE "GStreamer::${_gst_PLUGIN} [${_gst_plugin_library}]")
+>         message(VERBOSE "  deps -> ${_gst_plugin_dep_targets}")
+441d555
+<     # Handle all libraries, even those specified with -l:libfoo.a (srt)
+458a573,673
+> 
+> # Create MODULE IMPORTED targets for every runtime plugin .so in lib/gstreamer-1.0/.
+> # GStreamer loads these via dlopen() at gst_init() time — they are not linked.
+> # MODULE type (not UNKNOWN) is required for install(IMPORTED_RUNTIME_ARTIFACTS).
+> set(GStreamer_PLUGIN_TARGETS "")
+> file(GLOB _gst_plugin_files "${GStreamer_ROOT_DIR}/lib/gstreamer-1.0/libgst*.so")
+> foreach(_gst_plugin_file IN LISTS _gst_plugin_files)
+>     get_filename_component(_gst_plugin_fname "${_gst_plugin_file}" NAME)
+>     string(MAKE_C_IDENTIFIER "${_gst_plugin_fname}" _gst_plugin_id)
+>     set(_gst_plugin_target "GStreamer::_plugin_${_gst_plugin_id}")
+>     if(NOT TARGET "${_gst_plugin_target}")
+>         add_library("${_gst_plugin_target}" MODULE IMPORTED)
+>         set_target_properties("${_gst_plugin_target}" PROPERTIES
+>             IMPORTED_LOCATION "${_gst_plugin_file}"
+>         )
+>     endif()
+>     list(APPEND GStreamer_PLUGIN_TARGETS "${_gst_plugin_target}")
+> endforeach()
+> unset(_gst_plugin_files)
+> unset(_gst_plugin_file)
+> unset(_gst_plugin_fname)
+> unset(_gst_plugin_id)
+> unset(_gst_plugin_target)
+> 
+> # For each plugin listed in GSTREAMER_RUNTIME_PLUGINS, read its DT_NEEDED entries
+> # via readelf at configure time and register the resolved SDK libraries as
+> # GStreamer::_dep_* IMPORTED targets appended to GStreamer::GStreamer.
+> if(GSTREAMER_RUNTIME_PLUGINS)
+>     set(_gst_sdk_lib_dirs
+>         "${GStreamer_ROOT_DIR}/lib"
+>         "${GStreamer_ROOT_DIR}/lib/x86_64-linux-gnu"
+>     )
+>     set(_gst_rplugin_all_dep_targets "")
+> 
+>     foreach(_gst_rplugin IN LISTS GSTREAMER_RUNTIME_PLUGINS)
+>         set(_gst_rplugin_file "${GStreamer_ROOT_DIR}/lib/gstreamer-1.0/libgst${_gst_rplugin}.so")
+>         if(NOT EXISTS "${_gst_rplugin_file}")
+>             message(WARNING "GStreamer: runtime plugin '${_gst_rplugin}' not found at ${_gst_rplugin_file}")
+>             continue()
+>         endif()
+> 
+>         execute_process(
+>             COMMAND readelf -d "${_gst_rplugin_file}"
+>             OUTPUT_VARIABLE _gst_readelf_out
+>             ERROR_QUIET
+>         )
+> 
+>         string(REGEX MATCHALL "Shared library: \\[[^\]]+\\]" _gst_needed_entries "${_gst_readelf_out}")
+> 
+>         set(_gst_rplugin_dep_paths "")
+>         foreach(_gst_needed IN LISTS _gst_needed_entries)
+>             string(REGEX REPLACE "Shared library: \\[([^\]]+)\\]" "\\1" _gst_libname "${_gst_needed}")
+>             foreach(_gst_libdir IN LISTS _gst_sdk_lib_dirs)
+>                 if(EXISTS "${_gst_libdir}/${_gst_libname}")
+>                     list(APPEND _gst_rplugin_dep_paths "${_gst_libdir}/${_gst_libname}")
+>                     break()
+>                 endif()
+>             endforeach()
+>         endforeach()
+> 
+>         _gst_create_imported_dep_targets(_gst_rplugin_dep_targets ${_gst_rplugin_dep_paths})
+>         list(APPEND _gst_rplugin_all_dep_targets ${_gst_rplugin_dep_targets})
+>         message(VERBOSE "GStreamer runtime plugin [${_gst_rplugin}] deps -> ${_gst_rplugin_dep_targets}")
+>     endforeach()
+> 
+>     if(_gst_rplugin_all_dep_targets)
+>         list(REMOVE_DUPLICATES _gst_rplugin_all_dep_targets)
+>         set_property(TARGET GStreamer::GStreamer APPEND PROPERTY
+>             INTERFACE_LINK_LIBRARIES "${_gst_rplugin_all_dep_targets}"
+>         )
+>     endif()
+> 
+>     unset(_gst_sdk_lib_dirs)
+>     unset(_gst_rplugin)
+>     unset(_gst_rplugin_file)
+>     unset(_gst_readelf_out)
+>     unset(_gst_needed_entries)
+>     unset(_gst_needed)
+>     unset(_gst_libname)
+>     unset(_gst_libdir)
+>     unset(_gst_rplugin_dep_paths)
+>     unset(_gst_rplugin_dep_targets)
+>     unset(_gst_rplugin_all_dep_targets)
+> endif()
+> 
+> # Expose all GStreamer::_dep_* IMPORTED targets created during this run,
+> # including any plugin dependency targets added by GSTREAMER_RUNTIME_PLUGINS.
+> get_property(GStreamer_BUNDLED_TARGETS GLOBAL PROPERTY _GStreamer_dep_targets)
+> 
+> # Restore PKG_CONFIG_EXECUTABLE to the cache value (removes the --static shadow)
+> if (GStreamer_BUNDLE_DEPS)
+>     unset(PKG_CONFIG_EXECUTABLE)
+> endif()
+> 
+> # Restore pkg-config environment to avoid leaking into subsequent operations
+> set(ENV{PKG_CONFIG_PATH} "${_gst_orig_PKG_CONFIG_PATH}")
+> if (_gst_orig_PKG_CONFIG_DONT_DEFINE_PREFIX)
+>     set(ENV{PKG_CONFIG_DONT_DEFINE_PREFIX} "${_gst_orig_PKG_CONFIG_DONT_DEFINE_PREFIX}")
+> else()
+>     unset(ENV{PKG_CONFIG_DONT_DEFINE_PREFIX})
+> endif()
